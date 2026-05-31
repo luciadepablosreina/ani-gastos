@@ -522,7 +522,7 @@ function renderKPIs() {
     {label:"Egresos",  val:fmt(egresos),     color:"var(--egreso)", bg:"var(--eg-bg)"},
     {label:"Saldo",    val:fmt(saldo),       color:saldo>=0?"var(--ingreso)":"var(--egreso)",bg:"#fff"},
     {label:"Saldo USD",val:fmtUSD(usdSaldo), color:"var(--accent)", bg:"#eef5f0",
-     sub:usdStatus==="ok"?"aprox. "+fmt(usdSaldo*cotizacion()):""},
+     sub:usdStatus==="ok"?"aprox. "+fmt(usdSaldo*cotiz()):""},
   ].map(k=>`<div class="kpi" style="border-left:4px solid ${k.color};background:${k.bg}">
     <div class="kpi-lbl" style="color:${k.color}">${k.label}</div>
     <div class="kpi-val" style="color:${k.color}">${k.val}</div>
@@ -658,8 +658,8 @@ function renderKPIsUSD() {
   const el=document.getElementById("kpis-usd"); if(!el) return;
   el.innerHTML=[
     {label:"Saldo USD",       val:fmtUSD(usdSaldo),        color:"var(--primary)"},
-    {label:"Equivalente ARS", val:fmt(usdSaldo*cotizacion()),color:"var(--accent)"},
-    {label:"Cotizacion Usada",val:fmt(cotizacion())+" / USD",color:"var(--muted)"},
+    {label:"Equivalente ARS", val:fmt(usdSaldo*cotiz()),color:"var(--accent)"},
+    {label:"Cotizacion Usada",val:fmt(cotiz())+" / USD",color:"var(--muted)"},
   ].map(k=>`<div class="kpi" style="border-left:4px solid ${k.color}">
     <div class="kpi-lbl" style="color:${k.color}">${k.label}</div>
     <div class="kpi-val" style="color:${k.color}">${k.val}</div></div>`).join("");
@@ -677,14 +677,14 @@ function renderTablaUSD() {
       <td>${celdaEdSelUSD(m.id,"tipo",m.tipo,["ingreso","egreso"],m.tipo==="ingreso"?"color:var(--ingreso);font-weight:700":"color:var(--egreso);font-weight:700")}</td>
       <td style="font-weight:700;color:${m.tipo==="ingreso"?"var(--ingreso)":"var(--egreso)"}">
         ${celdaEdUSD(m.id,"monto",Math.abs(m.monto),"number","color:inherit;font-weight:700")}</td>
-      <td style="color:var(--muted);font-size:12px">${fmt(Math.abs(m.monto)*cotizacion())}</td>
+      <td style="color:var(--muted);font-size:12px">${fmt(Math.abs(m.monto)*cotiz())}</td>
       <td><button class="btn-del" onclick="eliminarUSD(${m.id})">✕</button></td>
     </tr>`).join("")
     : `<tr><td colspan="6" style="padding:24px;text-align:center;color:var(--muted)">Sin Movimientos En USD</td></tr>`;
   if(tfoot) tfoot.innerHTML=`<tr>
     <td colspan="3">${usdMovs.length} Movimiento(s)</td>
     <td style="color:${usdSaldo>=0?"var(--ingreso)":"var(--egreso)"}">${fmtUSD(usdSaldo)}</td>
-    <td colspan="2">aprox. ${fmt(usdSaldo*cotizacion())}</td></tr>`;
+    <td colspan="2">aprox. ${fmt(usdSaldo*cotiz())}</td></tr>`;
 }
 
 function celdaEdUSD(id,campo,valor,tipo="text",style="") {
