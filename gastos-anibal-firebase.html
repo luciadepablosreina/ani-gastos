@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Registro Financiero - Anibal</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, Helvetica, sans-serif; background: #f5f8f5; color: #1a3520; }
+  :root {
+    --primary: #1a5e30; --accent: #145a3c; --ingreso: #1a5e30; --egreso: #7a1f1f;
+    --ing-bg: #edf7ef; --eg-bg: #fdf0f0; --muted: #507050;
+    --border: #ccdacc; --bdk: #9ab89a; --soft: #f5f8f5; --white: #ffffff;
+  }
+  #header { background:#fff; border-bottom:2px solid var(--border); box-shadow:0 2px 8px rgba(26,94,48,.08); }
+  #header-inner { max-width:960px; margin:0 auto; padding:0 20px; }
+  #header-top { display:flex; justify-content:space-between; align-items:center; padding:16px 0 14px; border-bottom:1px solid var(--border); flex-wrap:wrap; gap:12px; }
+  #title-block .sub { font-size:11px; color:var(--muted); letter-spacing:1.5px; font-weight:700; margin-bottom:2px; }
+  #title-block .name { font-size:26px; font-weight:700; color:var(--primary); }
+  #header-right { display:flex; gap:20px; align-items:flex-start; flex-wrap:wrap; justify-content:flex-end; }
+  #cotiz-widget { border:1px solid var(--border); border-radius:6px; padding:8px 14px; background:var(--soft); display:flex; gap:16px; align-items:center; flex-wrap:wrap; }
+  #cotiz-label { font-size:10px; color:var(--muted); font-weight:700; letter-spacing:.5px; margin-bottom:4px; }
+  #cotiz-valores .val { font-size:15px; font-weight:700; color:var(--primary); }
+  #cotiz-valores .lbl { font-size:11px; color:var(--muted); }
+  #cotiz-fecha { font-size:10px; color:var(--muted); margin-top:3px; }
+  #btn-actualizar { padding:5px 12px; font-size:12px; border-radius:4px; cursor:pointer; font-weight:600; border:1px solid var(--bdk); background:#fff; color:var(--primary); }
+  #saldo-block { text-align:right; }
+  #saldo-block .lbl { font-size:11px; color:var(--muted); margin-bottom:3px; font-weight:700; letter-spacing:.5px; }
+  #saldo-block .val { font-size:24px; font-weight:700; color:var(--primary); }
+  #nav { display:flex; align-items:center; }
+  .nav-btn { background:none; border:none; cursor:pointer; padding:13px 18px; font-size:13px; color:var(--muted); font-weight:400; border-bottom:3px solid transparent; transition:all .15s; font-family:Arial; }
+  .nav-btn.activo { color:var(--primary); font-weight:700; border-bottom-color:var(--primary); }
+  #nav-spacer { flex:1; display:flex; justify-content:flex-end; gap:8px; align-items:center; }
+  #btn-guardar { padding:7px 18px; border-radius:4px; cursor:pointer; font-size:12px; font-weight:700; background:var(--soft); border:1px solid var(--bdk); color:var(--primary); transition:all .2s; font-family:Arial; }
+  #btn-guardar.ok { background:var(--ing-bg); border-color:var(--ingreso); color:var(--ingreso); }
+  #sync-status { font-size:11px; color:var(--muted); display:flex; align-items:center; gap:5px; }
+  #sync-dot { width:8px; height:8px; border-radius:50%; background:#ccc; display:inline-block; transition:background .3s; }
+  #sync-dot.conectado { background:#2a9e4a; }
+  #sync-dot.sincronizando { background:#e8a020; animation:pulse .8s infinite; }
+  #sync-dot.error { background:#c0392b; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  #contenido { max-width:960px; margin:0 auto; padding:22px 16px; }
+  .vista { display:none; } .vista.activo { display:block; }
+  .card { background:#fff; border:1px solid var(--border); border-radius:6px; padding:16px 18px; margin-bottom:14px; box-shadow:0 1px 4px rgba(26,94,48,.07); }
+  .card-label { font-size:11px; color:var(--muted); font-weight:700; letter-spacing:.5px; display:block; margin-bottom:5px; }
+  .grid-4 { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:16px; }
+  .grid-3 { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:16px; }
+  .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px; }
+  .kpi { background:#fff; border:1px solid var(--border); border-radius:6px; padding:14px 16px; box-shadow:0 1px 4px rgba(26,94,48,.07); }
+  .kpi .kpi-lbl { font-size:11px; font-weight:700; letter-spacing:.5px; margin-bottom:4px; }
+  .kpi .kpi-val { font-size:17px; font-weight:700; }
+  .kpi .kpi-sub { font-size:11px; color:var(--muted); margin-top:3px; }
+  .mes-btns { display:flex; flex-wrap:wrap; gap:6px; }
+  .mes-btn { padding:5px 11px; font-size:12px; border-radius:3px; cursor:pointer; border:1px solid var(--bdk); background:#fff; color:var(--muted); font-family:Arial; }
+  .mes-btn.activo { background:var(--primary); color:#fff; border-color:var(--primary); }
+  .barra-wrap { margin-bottom:10px; }
+  .barra-labels { display:flex; justify-content:space-between; margin-bottom:3px; }
+  .barra-labels .cat { font-size:13px; color:#3a5a3a; }
+  .barra-labels .monto { font-size:13px; font-weight:700; color:var(--egreso); }
+  .barra-track { height:6px; background:var(--soft); border-radius:3px; border:1px solid var(--border); }
+  .barra-fill { height:100%; border-radius:3px; background:linear-gradient(90deg,#145a3c,#1a5e30); transition:width .4s ease; }
+  .acceso-btn { padding:7px 14px; font-size:12px; border-radius:4px; cursor:pointer; font-weight:700; border:1px solid; margin:0; font-family:Arial; }
+  .acceso-btn.ingreso { background:var(--ing-bg); color:var(--ingreso); border-color:var(--ingreso); }
+  .acceso-btn.egreso  { background:var(--eg-bg);  color:var(--egreso);  border-color:var(--egreso); }
+  .accesos-wrap { display:flex; flex-wrap:wrap; gap:8px; }
+  #search-bar { display:flex; gap:10px; margin-bottom:12px; align-items:center; flex-wrap:wrap; }
+  #search-input { flex:1 1 200px; min-width:160px; padding:8px 10px; border:1px solid var(--bdk); border-radius:4px; font-size:13px; color:#1a3520; outline:none; font-family:Arial; }
+  .tabla-wrap { background:#fff; border:1px solid var(--border); border-radius:6px; overflow:auto; box-shadow:0 1px 4px rgba(26,94,48,.07); margin-bottom:6px; }
+  table { width:100%; border-collapse:collapse; font-size:13px; font-family:Arial; }
+  thead tr { background:var(--soft); border-bottom:2px solid var(--border); }
+  th { padding:10px 12px; text-align:left; font-size:11px; color:var(--muted); font-weight:700; letter-spacing:.5px; }
+  tbody tr { border-bottom:1px solid var(--border); }
+  tbody tr:nth-child(even) { background:var(--soft); }
+  tbody tr:hover { background:#eef5ee !important; }
+  td { padding:9px 12px; }
+  tfoot tr { background:var(--soft); border-top:2px solid var(--border); }
+  tfoot td { padding:10px 12px; font-weight:700; font-size:12px; color:var(--muted); }
+  .celda-editable { cursor:pointer; border-bottom:1px dashed var(--bdk); padding-bottom:1px; display:inline-block; }
+  .celda-editable:hover { border-bottom-color:var(--primary); }
+  .celda-input { font-size:12px; border:1px solid var(--bdk); border-radius:3px; padding:2px 6px; background:#fff; color:#1a3520; font-family:Arial; width:100%; }
+  .celda-select { font-size:12px; border:1px solid var(--bdk); border-radius:3px; padding:2px 4px; background:#fff; color:#1a3520; font-family:Arial; }
+  .btn-del { background:none; border:none; cursor:pointer; color:var(--muted); font-size:16px; padding:2px 6px; font-family:Arial; }
+  .btn-del:hover { color:var(--egreso); }
+  .form-wrap { max-width:480px; }
+  .form-label { font-size:11px; color:var(--muted); font-weight:700; letter-spacing:.5px; display:block; margin-bottom:5px; }
+  .form-input { width:100%; padding:8px 10px; background:#fff; border:1px solid var(--bdk); border-radius:4px; color:#1a3520; font-size:13px; font-family:Arial; outline:none; margin-bottom:13px; }
+  .form-input:focus { border-color:var(--primary); }
+  .tipo-btn { padding:10px; border-radius:4px; cursor:pointer; font-size:13px; font-weight:700; font-family:Arial; border:2px solid; width:100%; }
+  .tipo-btn.ing-btn { border-color:var(--ingreso); color:var(--ingreso); background:#fff; }
+  .tipo-btn.eg-btn  { border-color:var(--egreso);  color:var(--egreso);  background:#fff; }
+  .tipo-btn.ing-btn.sel { background:var(--ing-bg); }
+  .tipo-btn.eg-btn.sel  { background:var(--eg-bg); }
+  .moneda-btn { flex:1; padding:8px; border-radius:4px; cursor:pointer; font-size:13px; font-weight:700; border:2px solid var(--primary); font-family:Arial; background:#fff; color:var(--primary); }
+  .moneda-btn.sel { background:var(--primary); color:#fff; }
+  .btn-prim { width:100%; padding:12px; background:var(--primary); border:none; border-radius:4px; cursor:pointer; font-size:13px; font-weight:700; color:#fff; font-family:Arial; }
+  .btn-prim:hover { opacity:.9; }
+  .btn-sec { padding:10px 20px; background:var(--primary); border:none; border-radius:4px; cursor:pointer; font-size:13px; font-weight:700; color:#fff; font-family:Arial; }
+  #toast { display:none; position:fixed; top:16px; right:16px; z-index:1000; background:var(--ing-bg); border:1px solid var(--ingreso); color:var(--ingreso); padding:10px 20px; border-radius:6px; font-size:13px; font-weight:700; box-shadow:0 2px 8px rgba(0,0,0,.1); }
+  .tip { margin-top:6px; font-size:11px; color:var(--muted); }
+  #cotiz-usd-full { border:1px solid var(--border); border-radius:6px; padding:12px 18px; background:var(--soft); display:flex; gap:20px; align-items:center; flex-wrap:wrap; }
+  #cotiz-usd-full .valores { display:flex; gap:24px; align-items:baseline; flex-wrap:wrap; }
+  #cotiz-usd-full .val-big { font-size:20px; font-weight:700; color:var(--primary); }
+  #cotiz-usd-full .lbl-sm  { font-size:11px; color:var(--muted); }
+  #loading-overlay { display:none !important; }
+  #loading-overlay .spinner { width:36px; height:36px; border:3px solid var(--border); border-top-color:var(--primary); border-radius:50%; animation:spin .7s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  #loading-overlay p { font-size:14px; color:var(--muted); font-weight:600; }
+  @media (max-width:640px) {
+    .grid-4 { grid-template-columns:1fr 1fr; }
+    .grid-3 { grid-template-columns:1fr; }
+    #header-top { flex-direction:column; align-items:flex-start; }
+    #header-right { width:100%; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Loading -->
+<div id="loading-overlay" style="display:none">
+  <div class="spinner"></div>
+  <p>Conectando con Firebase...</p>
+</div>
+
+<div id="toast"></div>
+
+<!-- HEADER -->
+<div id="header">
+  <div id="header-inner">
+    <div id="header-top">
+      <div id="title-block">
+        <div class="sub">Registro Financiero Personal</div>
+        <div class="name">Anibal</div>
+      </div>
+      <div id="header-right">
+        <div id="cotiz-widget">
+          <div>
+            <div id="cotiz-label">Dolar Oficial Argentina</div>
+            <div id="cotiz-status-hdr" style="font-size:13px;color:var(--muted)">Consultando...</div>
+            <div id="cotiz-valores" style="display:none">
+              <span class="lbl">Compra </span><span class="val" id="hdr-compra">-</span>
+              &nbsp;&nbsp;
+              <span class="lbl">Venta </span><span class="val" id="hdr-venta">-</span>
+            </div>
+            <div id="cotiz-fecha"></div>
+          </div>
+          <button id="btn-actualizar" onclick="fetchCotiz()">↻ Actualizar</button>
+        </div>
+        <div id="saldo-block">
+          <div class="lbl">Saldo General</div>
+          <div class="val" id="saldo-general">$0</div>
+        </div>
+      </div>
+    </div>
+    <div id="nav">
+      <button class="nav-btn activo" onclick="setVista('dashboard')">Resumen</button>
+      <button class="nav-btn" onclick="setVista('lista')">Movimientos</button>
+      <button class="nav-btn" onclick="setVista('nuevo')">+ Nuevo</button>
+      <button class="nav-btn" onclick="setVista('usd')">USD</button>
+      <div id="nav-spacer">
+        <div id="sync-status">
+          <span id="sync-dot"></span>
+          <span id="sync-texto">Conectando...</span>
+        </div>
+        <button id="btn-guardar" onclick="guardar()">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CONTENIDO -->
+<div id="contenido">
+
+  <!-- RESUMEN -->
+  <div id="vista-dashboard" class="vista activo">
+    <div class="grid-4" id="kpis"></div>
+    <div class="card">
+      <span class="card-label">Filtrar Por Mes</span>
+      <div class="mes-btns" id="mes-btns-dash"></div>
+    </div>
+    <div class="card">
+      <span class="card-label">Egresos Por Categoria</span>
+      <div id="barras"></div>
+    </div>
+    <div class="card">
+      <span class="card-label">Accesos Rapidos</span>
+      <div class="accesos-wrap" id="accesos"></div>
+    </div>
+  </div>
+
+  <!-- MOVIMIENTOS -->
+  <div id="vista-lista" class="vista">
+    <div id="search-bar">
+      <input id="search-input" type="text" placeholder="Buscar Por Descripcion O Categoria..." oninput="renderLista()">
+      <div class="mes-btns" id="mes-btns-lista"></div>
+    </div>
+    <div class="tabla-wrap">
+      <table>
+        <thead><tr><th>Fecha</th><th>Descripcion</th><th>Categoria</th><th>Tipo</th><th>Monto</th><th></th></tr></thead>
+        <tbody id="tbody-movs"></tbody>
+        <tfoot id="tfoot-movs"></tfoot>
+      </table>
+    </div>
+    <div class="tip">Clic En Cualquier Celda Subrayada Para Editar. Enter Para Confirmar.</div>
+  </div>
+
+  <!-- NUEVO -->
+  <div id="vista-nuevo" class="vista">
+    <div class="form-wrap">
+      <div class="card">
+        <div style="font-size:18px;font-weight:700;color:var(--primary);margin-bottom:18px">Nuevo Movimiento</div>
+        <div class="grid-2" style="margin-bottom:16px">
+          <button id="btn-eg"  class="tipo-btn eg-btn sel"  onclick="selTipo('egreso')">Egreso</button>
+          <button id="btn-ing" class="tipo-btn ing-btn"     onclick="selTipo('ingreso')">Ingreso</button>
+        </div>
+        <label class="form-label">Descripcion</label>
+        <input id="f-desc"  class="form-input" type="text"   placeholder="Ej: Luz Mayo">
+        <label class="form-label">Monto</label>
+        <input id="f-monto" class="form-input" type="number" placeholder="0">
+        <label class="form-label">Fecha</label>
+        <input id="f-fecha" class="form-input" type="date">
+        <label class="form-label">Categoria</label>
+        <select id="f-cat" class="form-input"></select>
+        <label class="form-label">Moneda</label>
+        <div style="display:flex;gap:8px;margin-bottom:20px">
+          <button id="btn-ars"   class="moneda-btn sel" onclick="selMoneda('ARS')">ARS</button>
+          <button id="btn-usd-m" class="moneda-btn"     onclick="selMoneda('USD')">USD</button>
+        </div>
+        <button class="btn-prim" onclick="agregarMov()">Agregar Movimiento</button>
+      </div>
+      <div class="card">
+        <span class="card-label">Carga Rapida</span>
+        <div class="accesos-wrap" id="accesos-nuevo"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- USD -->
+  <div id="vista-usd" class="vista">
+    <div class="card">
+      <span class="card-label">Dolar Oficial Argentina - Tiempo Real</span>
+      <div id="cotiz-usd-full">
+        <div>
+          <div id="usd-full-status" style="font-size:13px;color:var(--muted)">Consultando...</div>
+          <div id="usd-full-valores" class="valores" style="display:none">
+            <span><span class="lbl-sm">Compra </span><span class="val-big" id="full-compra">-</span></span>
+            <span><span class="lbl-sm">Venta </span><span class="val-big" id="full-venta">-</span></span>
+            <span><span class="lbl-sm">Promedio </span><span class="val-big" id="full-prom" style="font-size:16px">-</span></span>
+          </div>
+          <div id="usd-full-fecha" style="font-size:10px;color:var(--muted);margin-top:4px"></div>
+        </div>
+        <button style="padding:7px 14px;border:1px solid var(--bdk);border-radius:4px;font-size:12px;font-weight:600;color:var(--primary);background:#fff;cursor:pointer;font-family:Arial" onclick="fetchCotiz()">↻ Actualizar</button>
+      </div>
+    </div>
+    <div class="grid-3" id="kpis-usd"></div>
+    <div class="card">
+      <div style="font-size:16px;font-weight:700;color:var(--primary);margin-bottom:14px">Nuevo Movimiento En USD</div>
+      <div class="grid-2">
+        <button id="ubtn-eg"  class="tipo-btn eg-btn sel"  onclick="selTipoUSD('egreso')">Egreso</button>
+        <button id="ubtn-ing" class="tipo-btn ing-btn"     onclick="selTipoUSD('ingreso')">Ingreso</button>
+      </div>
+      <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px;margin-bottom:12px">
+        <input id="u-desc"  class="form-input" style="margin:0" type="text"   placeholder="Descripcion">
+        <input id="u-monto" class="form-input" style="margin:0" type="number" placeholder="USD">
+        <input id="u-fecha" class="form-input" style="margin:0" type="date">
+      </div>
+      <button class="btn-sec" onclick="agregarUSD()">Agregar Movimiento USD</button>
+    </div>
+    <div class="tabla-wrap">
+      <table>
+        <thead><tr><th>Fecha</th><th>Descripcion</th><th>Tipo</th><th>USD</th><th>Aprox ARS</th><th></th></tr></thead>
+        <tbody id="tbody-usd"></tbody>
+        <tfoot id="tfoot-usd"></tfoot>
+      </table>
+    </div>
+    <div class="tip">Clic En Cualquier Celda Subrayada Para Editar.</div>
+  </div>
+
+</div><!-- /contenido -->
+
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp }                        from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, set, onValue, get }  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+// ── Config Firebase ────────────────────────────────────────────────────
+const firebaseConfig = {
+  apiKey:            "AIzaSyAADzNPZchGaZib3oIv3o_4hHHqGAI8WRQ",
+  authDomain:        "gastos-anibal.firebaseapp.com",
+  databaseURL:       "https://gastos-anibal-default-rtdb.firebaseio.com",
+  projectId:         "gastos-anibal",
+  storageBucket:     "gastos-anibal.firebasestorage.app",
+  messagingSenderId: "637431280863",
+  appId:             "1:637431280863:web:610c38af813557e5e0256a"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getDatabase(app);
+
+// ── Datos ──────────────────────────────────────────────────────────────
+const CATEGORIAS = ["Efectivo","MP","Tarjeta Visa","Tarjeta Master","Banco","Luz","Gas","Nafta","Gym","Remedios","Colonia","Patente","VTV","Seguro","Supermercado","Otros"];
+const ACCESOS = [
+  {label:"Luz",cat:"Luz",tipo:"egreso"},{label:"Gas",cat:"Gas",tipo:"egreso"},
+  {label:"Nafta",cat:"Nafta",tipo:"egreso"},{label:"Gym",cat:"Gym",tipo:"egreso"},
+  {label:"Remedios",cat:"Remedios",tipo:"egreso"},{label:"Colonia",cat:"Colonia",tipo:"egreso"},
+  {label:"Sueldo Mama",cat:"Efectivo",tipo:"ingreso"},{label:"MP Ingreso",cat:"MP",tipo:"ingreso"},
+];
+const MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+
+const SEED_MOVS = [
+  {id:1,fecha:"2026-05-09",descripcion:"Koloso",         monto:437000, tipo:"ingreso",categoria:"Efectivo",   moneda:"ARS"},
+  {id:2,fecha:"2026-05-25",descripcion:"Carniceria",      monto:-50000, tipo:"egreso", categoria:"Efectivo",   moneda:"ARS"},
+  {id:3,fecha:"2026-05-30",descripcion:"Lu May",          monto:29000,  tipo:"ingreso",categoria:"Efectivo",   moneda:"ARS"},
+  {id:4,fecha:"2026-05-31",descripcion:"Javi Fin May",    monto:68000,  tipo:"ingreso",categoria:"Efectivo",   moneda:"ARS"},
+  {id:5,fecha:"2026-06-09",descripcion:"Visa Pata BF May",monto:-604199,tipo:"egreso", categoria:"Tarjeta Visa",moneda:"ARS"},
+  {id:6,fecha:"2026-06-11",descripcion:"Luz May",         monto:-35000, tipo:"egreso", categoria:"Luz",        moneda:"ARS"},
+  {id:7,fecha:"2026-06-15",descripcion:"Nafta",           monto:-85000, tipo:"egreso", categoria:"Nafta",      moneda:"ARS"},
+  {id:8,fecha:"2026-06-22",descripcion:"Remedios",        monto:-100000,tipo:"egreso", categoria:"Remedios",   moneda:"ARS"},
+  {id:9,fecha:"2026-06-25",descripcion:"Mama Fin Jun",    monto:700000, tipo:"ingreso",categoria:"Efectivo",   moneda:"ARS"},
+  {id:10,fecha:"2026-06-30",descripcion:"Gym Jul",        monto:-40000, tipo:"egreso", categoria:"Gym",        moneda:"ARS"},
+];
+const SEED_USD = [
+  {id:1,fecha:"2025-07-01",descripcion:"Auto",monto:-8000,tipo:"egreso"},
+  {id:2,fecha:"2026-03-20",descripcion:"Gas", monto:-400, tipo:"egreso"},
+  {id:3,fecha:"2026-04-15",descripcion:"Gas", monto:-500, tipo:"egreso"},
+];
+
+// ── Estado ─────────────────────────────────────────────────────────────
+// Cargar desde caché local inmediatamente (arranque instantáneo)
+let movimientos = JSON.parse(localStorage.getItem("cache_movimientos") || "null") || SEED_MOVS;
+let usdMovs     = JSON.parse(localStorage.getItem("cache_usdMovs")     || "null") || SEED_USD;
+let vistaActual = "dashboard";
+let filtroMes   = null;
+let formTipo    = "egreso";
+let formMoneda  = "ARS";
+let usdFormTipo = "egreso";
+let usdCompra   = null, usdVenta = null, usdFechaStr = null, usdStatus = "idle";
+let firebaseListening = false;
+
+// ── Utilidades ─────────────────────────────────────────────────────────
+const fmt    = n => new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS",maximumFractionDigits:0}).format(n);
+const fmtUSD = n => new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:2}).format(n);
+const today  = () => new Date().toISOString().split("T")[0];
+const cotiz  = () => usdVenta || 1200;
+
+// ── Sincronización Firebase ────────────────────────────────────────────
+function setSyncStatus(estado, texto) {
+  const dot   = document.getElementById("sync-dot");
+  const label = document.getElementById("sync-texto");
+  dot.className = estado;   // conectado | sincronizando | error | ""
+  label.textContent = texto;
+}
+
+// Escuchar cambios en tiempo real desde Firebase (en segundo plano)
+function iniciarEscucha() {
+  if (firebaseListening) return;
+  firebaseListening = true;
+
+  onValue(ref(db, "movimientos"), snap => {
+    const val = snap.val();
+    if (val) {
+      const nuevos = Array.isArray(val) ? val : Object.values(val);
+      movimientos = nuevos;
+      localStorage.setItem("cache_movimientos", JSON.stringify(movimientos));
+    }
+    renderAll();
+    setSyncStatus("conectado", "Sincronizado");
+  }, err => {
+    console.error("Error Firebase:", err);
+    setSyncStatus("error", "Sin conexion — usando datos locales");
+  });
+
+  onValue(ref(db, "usdMovs"), snap => {
+    const val = snap.val();
+    if (val) {
+      usdMovs = Array.isArray(val) ? val : Object.values(val);
+      localStorage.setItem("cache_usdMovs", JSON.stringify(usdMovs));
+    }
+    renderTablaUSD(); renderKPIsUSD();
+  });
+}
+
+// Guardar en Firebase + caché local
+async function guardarFirebase() {
+  setSyncStatus("sincronizando", "Guardando...");
+  // Guardar en caché local siempre (instantáneo)
+  localStorage.setItem("cache_movimientos", JSON.stringify(movimientos));
+  localStorage.setItem("cache_usdMovs",     JSON.stringify(usdMovs));
+  try {
+    await Promise.all([
+      set(ref(db, "movimientos"), movimientos),
+      set(ref(db, "usdMovs"),     usdMovs),
+    ]);
+    setSyncStatus("conectado", "Sincronizado");
+    return true;
+  } catch(e) {
+    console.error("Error guardando:", e);
+    setSyncStatus("error", "Guardado local — sin internet");
+    return false;
+  }
+}
+
+function guardar() {
+  const btn = document.getElementById("btn-guardar");
+  guardarFirebase().then(ok => {
+    if (ok) {
+      btn.textContent = "Guardado"; btn.classList.add("ok");
+      mostrarToast("Datos Guardados Y Sincronizados En Todos Los Dispositivos");
+      setTimeout(()=>{ btn.textContent="Guardar"; btn.classList.remove("ok"); }, 2500);
+    }
+  });
+}
+
+function mostrarToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.style.display = "block";
+  setTimeout(()=>{ t.style.display="none"; }, 3000);
+}
+
+// Auto-guardar tras cada cambio (con debounce de 1.5s)
+let autoGuardTimer = null;
+function autoGuardar() {
+  clearTimeout(autoGuardTimer);
+  setSyncStatus("sincronizando", "Guardando...");
+  autoGuardTimer = setTimeout(()=>{ guardarFirebase(); }, 1500);
+}
+
+// ── Navegación ─────────────────────────────────────────────────────────
+window.setVista = function(v) {
+  vistaActual = v;
+  document.querySelectorAll(".vista").forEach(el=>el.classList.remove("activo"));
+  document.getElementById("vista-"+v).classList.add("activo");
+  document.querySelectorAll(".nav-btn").forEach(el=>el.classList.remove("activo"));
+  const idx = {dashboard:0,lista:1,nuevo:2,usd:3}[v];
+  document.querySelectorAll(".nav-btn")[idx].classList.add("activo");
+  renderAll();
+};
+
+// ── Cotización: fetch directo y rápido ────────────────────────────────
+window.fetchCotiz = async function() {
+  usdStatus = "cargando"; actualizarCotizUI();
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000); // 5s máximo
+    const resp = await fetch("https://dolarapi.com/v1/dolares/oficial", {
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
+    if (!resp.ok) throw new Error("HTTP " + resp.status);
+    const data = await resp.json();
+    usdCompra   = data.compra;
+    usdVenta    = data.venta;
+    usdFechaStr = data.fechaActualizacion
+      ? new Date(data.fechaActualizacion).toLocaleString("es-AR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})
+      : new Date().toLocaleString("es-AR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
+    usdStatus = "ok";
+  } catch(e) {
+    // Si falla dolarapi, intentar API alternativa
+    try {
+      const r2 = await fetch("https://api.bluelytics.com.ar/v2/latest");
+      const d2 = await r2.json();
+      usdCompra   = d2.oficial?.value_buy  || null;
+      usdVenta    = d2.oficial?.value_sell || null;
+      usdFechaStr = d2.last_update ? new Date(d2.last_update).toLocaleString("es-AR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}) : "";
+      usdStatus   = usdCompra ? "ok" : "error";
+    } catch { usdStatus = "error"; }
+  }
+  actualizarCotizUI(); renderKPIsUSD(); renderTablaUSD();
+};
+
+function actualizarCotizUI() {
+  const setPanel = (statusId, valsId, fechaId, compraId, ventaId, promId) => {
+    const statusEl = document.getElementById(statusId);
+    const valsEl   = document.getElementById(valsId);
+    if (!statusEl) return;
+    if (usdStatus==="cargando") { statusEl.style.display=""; valsEl.style.display="none"; statusEl.textContent="Consultando..."; }
+    else if (usdStatus==="error") { statusEl.style.display=""; valsEl.style.display="none"; statusEl.textContent="Sin Conexion"; }
+    else {
+      statusEl.style.display="none"; valsEl.style.display="flex";
+      document.getElementById(compraId).textContent = fmt(usdCompra);
+      document.getElementById(ventaId).textContent  = fmt(usdVenta);
+      if (promId) document.getElementById(promId).textContent = fmt((usdCompra+usdVenta)/2);
+      if (fechaId) { const f=document.getElementById(fechaId); if(f) f.textContent = usdFechaStr?"Actualizado: "+usdFechaStr:""; }
+    }
+  };
+  setPanel("cotiz-status-hdr","cotiz-valores","cotiz-fecha","hdr-compra","hdr-venta",null);
+  setPanel("usd-full-status","usd-full-valores","usd-full-fecha","full-compra","full-venta","full-prom");
+}
+
+// ── Render ─────────────────────────────────────────────────────────────
+function renderAll() {
+  renderKPIs(); renderMesBtns(); renderBarras(); renderAccesos();
+  renderLista(); renderKPIsUSD(); renderTablaUSD(); renderSaldo();
+}
+
+function movsFiltrados() {
+  let arr = [...movimientos];
+  if (filtroMes!==null) arr = arr.filter(m=>new Date(m.fecha).getMonth()===filtroMes);
+  const s = (document.getElementById("search-input")?.value||"").toLowerCase();
+  if (s) arr = arr.filter(m=>m.descripcion.toLowerCase().includes(s)||m.categoria.toLowerCase().includes(s));
+  return arr.sort((a,b)=>new Date(b.fecha)-new Date(a.fecha));
+}
+
+function totales() {
+  const mf = movsFiltrados();
+  const ingresos = mf.filter(m=>m.tipo==="ingreso").reduce((s,m)=>s+Math.abs(m.monto),0);
+  const egresos  = mf.filter(m=>m.tipo==="egreso" ).reduce((s,m)=>s+Math.abs(m.monto),0);
+  return {ingresos,egresos,saldo:ingresos-egresos};
+}
+
+function renderSaldo() {
+  const {saldo} = totales();
+  const el = document.getElementById("saldo-general");
+  el.textContent = fmt(saldo);
+  el.style.color = saldo>=0?"var(--ingreso)":"var(--egreso)";
+}
+
+function renderKPIs() {
+  const {ingresos,egresos,saldo} = totales();
+  const usdSaldo = usdMovs.reduce((s,m)=>s+m.monto,0);
+  document.getElementById("kpis").innerHTML = [
+    {label:"Ingresos", val:fmt(ingresos),    color:"var(--ingreso)",bg:"var(--ing-bg)"},
+    {label:"Egresos",  val:fmt(egresos),     color:"var(--egreso)", bg:"var(--eg-bg)"},
+    {label:"Saldo",    val:fmt(saldo),       color:saldo>=0?"var(--ingreso)":"var(--egreso)",bg:"#fff"},
+    {label:"Saldo USD",val:fmtUSD(usdSaldo), color:"var(--accent)", bg:"#eef5f0",
+     sub:usdStatus==="ok"?"aprox. "+fmt(usdSaldo*cotizacion()):""},
+  ].map(k=>`<div class="kpi" style="border-left:4px solid ${k.color};background:${k.bg}">
+    <div class="kpi-lbl" style="color:${k.color}">${k.label}</div>
+    <div class="kpi-val" style="color:${k.color}">${k.val}</div>
+    ${k.sub?`<div class="kpi-sub">${k.sub}</div>`:""}</div>`).join("");
+}
+
+function renderMesBtns() {
+  const html = `<button class="mes-btn ${filtroMes===null?"activo":""}" onclick="setMes(null)">Todos</button>`
+    + MESES.map((m,i)=>`<button class="mes-btn ${filtroMes===i?"activo":""}" onclick="setMes(${i})">${m}</button>`).join("");
+  ["mes-btns-dash","mes-btns-lista"].forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML=html; });
+}
+
+window.setMes = function(m) { filtroMes=(filtroMes===m)?null:m; renderAll(); };
+
+function renderBarras() {
+  const map={};
+  movsFiltrados().filter(m=>m.tipo==="egreso").forEach(m=>{ map[m.categoria]=(map[m.categoria]||0)+Math.abs(m.monto); });
+  const sorted=Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,7);
+  const max=sorted[0]?.[1]||1;
+  const el=document.getElementById("barras");
+  el.innerHTML = sorted.length ? sorted.map(([cat,val])=>`
+    <div class="barra-wrap">
+      <div class="barra-labels"><span class="cat">${cat}</span><span class="monto">${fmt(val)}</span></div>
+      <div class="barra-track"><div class="barra-fill" style="width:${(val/max*100).toFixed(1)}%"></div></div>
+    </div>`).join("")
+    : '<div style="color:var(--muted);font-size:13px">Sin Egresos En El Periodo</div>';
+}
+
+function renderAccesos() {
+  const html = ACCESOS.map(r=>`<button class="acceso-btn ${r.tipo}" onclick="usarAcceso('${r.label}','${r.cat}','${r.tipo}')">${r.tipo==="ingreso"?"↑":"↓"} ${r.label}</button>`).join("");
+  ["accesos","accesos-nuevo"].forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML=html; });
+}
+
+window.usarAcceso = function(label,cat,tipo) {
+  document.getElementById("f-desc").value=label;
+  document.getElementById("f-cat").value=cat;
+  selTipo(tipo); setVista("nuevo");
+};
+
+// ── Tabla movimientos ──────────────────────────────────────────────────
+function renderLista() {
+  const mf = movsFiltrados();
+  const {ingresos,egresos,saldo} = totales();
+  const tbody=document.getElementById("tbody-movs"), tfoot=document.getElementById("tfoot-movs");
+  tbody.innerHTML = mf.length ? mf.map((m,i)=>`
+    <tr style="background:${i%2===0?"#fff":"var(--soft)"}">
+      <td>${celdaEd(m.id,"fecha",m.fecha,"date")}</td>
+      <td style="max-width:200px">${celdaEd(m.id,"descripcion",m.descripcion)}</td>
+      <td>${celdaEdSel(m.id,"categoria",m.categoria,CATEGORIAS)}</td>
+      <td>${celdaEdSel(m.id,"tipo",m.tipo,["ingreso","egreso"],m.tipo==="ingreso"?"color:var(--ingreso);font-weight:700":"color:var(--egreso);font-weight:700")}</td>
+      <td style="font-weight:700;color:${m.tipo==="ingreso"?"var(--ingreso)":"var(--egreso)"}">
+        ${celdaEd(m.id,"monto",Math.abs(m.monto),"number","color:inherit;font-weight:700")}</td>
+      <td><button class="btn-del" onclick="eliminarMov(${m.id})">✕</button></td>
+    </tr>`).join("")
+    : `<tr><td colspan="6" style="padding:28px;text-align:center;color:var(--muted)">Sin Movimientos En Este Periodo</td></tr>`;
+  tfoot.innerHTML = `<tr>
+    <td colspan="3">${mf.length} Movimiento(s)</td>
+    <td style="color:var(--ingreso)">Ingresos: ${fmt(ingresos)}</td>
+    <td colspan="2" style="color:${saldo>=0?"var(--ingreso)":"var(--egreso)"}">Saldo: ${fmt(saldo)}</td></tr>`;
+  renderMesBtns(); renderSaldo();
+}
+
+function celdaEd(id,campo,valor,tipo="text",style="") {
+  return `<span class="celda-editable" style="${style}" onclick="editarCelda(this,${id},'${campo}','${tipo}')">${String(valor).replace(/"/g,"&quot;")}</span>`;
+}
+function celdaEdSel(id,campo,valor,opciones,style="") {
+  return `<span class="celda-editable" style="${style}" onclick="editarCeldaSel(this,${id},'${campo}',[${opciones.map(o=>`'${o}'`).join(",")}])">${String(valor).replace(/"/g,"&quot;")}</span>`;
+}
+
+window.editarCelda = function(span,id,campo,tipo) {
+  const m = movimientos.find(m=>m.id===id);
+  const input=document.createElement("input"); input.type=tipo; input.className="celda-input";
+  input.value = campo==="monto" ? Math.abs(m?.monto||0) : span.textContent.trim();
+  span.replaceWith(input); input.focus();
+  const ok=()=>{ guardarCampo(id,campo,input.value); renderLista(); autoGuardar(); };
+  input.addEventListener("blur",ok);
+  input.addEventListener("keydown",e=>{ if(e.key==="Enter"){e.preventDefault();ok();} if(e.key==="Escape") renderLista(); });
+};
+
+window.editarCeldaSel = function(span,id,campo,opciones) {
+  const sel=document.createElement("select"); sel.className="celda-select";
+  opciones.forEach(o=>{ const opt=document.createElement("option"); opt.value=o; opt.textContent=o; sel.appendChild(opt); });
+  sel.value=span.textContent.trim(); span.replaceWith(sel); sel.focus();
+  const ok=()=>{ guardarCampo(id,campo,sel.value); renderLista(); autoGuardar(); };
+  sel.addEventListener("change",ok); sel.addEventListener("blur",ok);
+};
+
+function guardarCampo(id,campo,valor) {
+  movimientos=movimientos.map(m=>{
+    if(m.id!==id) return m;
+    let u={...m,[campo]:valor};
+    if(campo==="monto"){ const a=Math.abs(parseFloat(valor)||0); u.monto=u.tipo==="egreso"?-a:a; }
+    if(campo==="tipo"){ u.monto=valor==="egreso"?-Math.abs(m.monto):Math.abs(m.monto); }
+    return u;
+  });
+  renderKPIs(); renderSaldo();
+}
+
+window.eliminarMov = function(id) {
+  if (!confirm("Eliminar este movimiento?")) return;
+  movimientos=movimientos.filter(m=>m.id!==id);
+  autoGuardar(); renderLista(); renderKPIs(); renderBarras();
+};
+
+// ── Formulario nuevo ───────────────────────────────────────────────────
+window.selTipo = function(t) {
+  formTipo=t;
+  document.getElementById("btn-eg").classList.toggle("sel",t==="egreso");
+  document.getElementById("btn-ing").classList.toggle("sel",t==="ingreso");
+};
+window.selMoneda = function(m) {
+  formMoneda=m;
+  document.getElementById("btn-ars").classList.toggle("sel",m==="ARS");
+  document.getElementById("btn-usd-m").classList.toggle("sel",m==="USD");
+};
+window.agregarMov = function() {
+  const desc=document.getElementById("f-desc").value.trim();
+  const monto=parseFloat(document.getElementById("f-monto").value)||0;
+  const fecha=document.getElementById("f-fecha").value;
+  const cat=document.getElementById("f-cat").value;
+  if(!desc||!monto) return alert("Completa Descripcion Y Monto");
+  movimientos.push({id:Date.now(),fecha:fecha||today(),descripcion:desc,
+    monto:formTipo==="egreso"?-Math.abs(monto):Math.abs(monto),tipo:formTipo,categoria:cat,moneda:formMoneda});
+  document.getElementById("f-desc").value="";
+  document.getElementById("f-monto").value="";
+  document.getElementById("f-fecha").value=today();
+  autoGuardar(); setVista("lista");
+};
+
+// ── USD ────────────────────────────────────────────────────────────────
+function renderKPIsUSD() {
+  const usdSaldo=usdMovs.reduce((s,m)=>s+m.monto,0);
+  const el=document.getElementById("kpis-usd"); if(!el) return;
+  el.innerHTML=[
+    {label:"Saldo USD",       val:fmtUSD(usdSaldo),        color:"var(--primary)"},
+    {label:"Equivalente ARS", val:fmt(usdSaldo*cotizacion()),color:"var(--accent)"},
+    {label:"Cotizacion Usada",val:fmt(cotizacion())+" / USD",color:"var(--muted)"},
+  ].map(k=>`<div class="kpi" style="border-left:4px solid ${k.color}">
+    <div class="kpi-lbl" style="color:${k.color}">${k.label}</div>
+    <div class="kpi-val" style="color:${k.color}">${k.val}</div></div>`).join("");
+}
+
+function renderTablaUSD() {
+  const sorted=[...usdMovs].sort((a,b)=>new Date(b.fecha)-new Date(a.fecha));
+  const usdSaldo=usdMovs.reduce((s,m)=>s+m.monto,0);
+  const tbody=document.getElementById("tbody-usd"), tfoot=document.getElementById("tfoot-usd");
+  if(!tbody) return;
+  tbody.innerHTML = sorted.length ? sorted.map((m,i)=>`
+    <tr style="background:${i%2===0?"#fff":"var(--soft)"}">
+      <td>${celdaEdUSD(m.id,"fecha",m.fecha,"date")}</td>
+      <td>${celdaEdUSD(m.id,"descripcion",m.descripcion)}</td>
+      <td>${celdaEdSelUSD(m.id,"tipo",m.tipo,["ingreso","egreso"],m.tipo==="ingreso"?"color:var(--ingreso);font-weight:700":"color:var(--egreso);font-weight:700")}</td>
+      <td style="font-weight:700;color:${m.tipo==="ingreso"?"var(--ingreso)":"var(--egreso)"}">
+        ${celdaEdUSD(m.id,"monto",Math.abs(m.monto),"number","color:inherit;font-weight:700")}</td>
+      <td style="color:var(--muted);font-size:12px">${fmt(Math.abs(m.monto)*cotizacion())}</td>
+      <td><button class="btn-del" onclick="eliminarUSD(${m.id})">✕</button></td>
+    </tr>`).join("")
+    : `<tr><td colspan="6" style="padding:24px;text-align:center;color:var(--muted)">Sin Movimientos En USD</td></tr>`;
+  if(tfoot) tfoot.innerHTML=`<tr>
+    <td colspan="3">${usdMovs.length} Movimiento(s)</td>
+    <td style="color:${usdSaldo>=0?"var(--ingreso)":"var(--egreso)"}">${fmtUSD(usdSaldo)}</td>
+    <td colspan="2">aprox. ${fmt(usdSaldo*cotizacion())}</td></tr>`;
+}
+
+function celdaEdUSD(id,campo,valor,tipo="text",style="") {
+  return `<span class="celda-editable" style="${style}" onclick="editarCeldaUSD(this,${id},'${campo}','${tipo}')">${String(valor).replace(/"/g,"&quot;")}</span>`;
+}
+function celdaEdSelUSD(id,campo,valor,opciones,style="") {
+  return `<span class="celda-editable" style="${style}" onclick="editarCeldaSelUSD(this,${id},'${campo}',[${opciones.map(o=>`'${o}'`).join(",")}])">${String(valor).replace(/"/g,"&quot;")}</span>`;
+}
+window.editarCeldaUSD = function(span,id,campo,tipo) {
+  const m=usdMovs.find(m=>m.id===id);
+  const input=document.createElement("input"); input.type=tipo; input.className="celda-input";
+  input.value=campo==="monto"?Math.abs(m?.monto||0):span.textContent.trim();
+  span.replaceWith(input); input.focus();
+  const ok=()=>{ guardarCampoUSD(id,campo,input.value); renderTablaUSD(); renderKPIsUSD(); autoGuardar(); };
+  input.addEventListener("blur",ok);
+  input.addEventListener("keydown",e=>{ if(e.key==="Enter"){e.preventDefault();ok();} if(e.key==="Escape") renderTablaUSD(); });
+};
+window.editarCeldaSelUSD = function(span,id,campo,opciones) {
+  const sel=document.createElement("select"); sel.className="celda-select";
+  opciones.forEach(o=>{ const opt=document.createElement("option"); opt.value=o; opt.textContent=o; sel.appendChild(opt); });
+  sel.value=span.textContent.trim(); span.replaceWith(sel); sel.focus();
+  const ok=()=>{ guardarCampoUSD(id,campo,sel.value); renderTablaUSD(); renderKPIsUSD(); autoGuardar(); };
+  sel.addEventListener("change",ok); sel.addEventListener("blur",ok);
+};
+function guardarCampoUSD(id,campo,valor) {
+  usdMovs=usdMovs.map(m=>{
+    if(m.id!==id) return m;
+    let u={...m,[campo]:valor};
+    if(campo==="monto"){ const a=Math.abs(parseFloat(valor)||0); u.monto=u.tipo==="egreso"?-a:a; }
+    if(campo==="tipo"){ u.monto=valor==="egreso"?-Math.abs(m.monto):Math.abs(m.monto); }
+    return u;
+  });
+}
+window.eliminarUSD = function(id) {
+  if (!confirm("Eliminar este movimiento?")) return;
+  usdMovs=usdMovs.filter(m=>m.id!==id);
+  autoGuardar(); renderTablaUSD(); renderKPIsUSD();
+};
+window.selTipoUSD = function(t) {
+  usdFormTipo=t;
+  document.getElementById("ubtn-eg").classList.toggle("sel",t==="egreso");
+  document.getElementById("ubtn-ing").classList.toggle("sel",t==="ingreso");
+};
+window.agregarUSD = function() {
+  const desc=document.getElementById("u-desc").value.trim();
+  const monto=parseFloat(document.getElementById("u-monto").value)||0;
+  const fecha=document.getElementById("u-fecha").value;
+  if(!desc||!monto) return alert("Completa Descripcion Y Monto");
+  usdMovs.push({id:Date.now(),fecha:fecha||today(),descripcion:desc,
+    monto:usdFormTipo==="egreso"?-Math.abs(monto):Math.abs(monto),tipo:usdFormTipo});
+  document.getElementById("u-desc").value="";
+  document.getElementById("u-monto").value="";
+  document.getElementById("u-fecha").value=today();
+  autoGuardar(); renderTablaUSD(); renderKPIsUSD();
+};
+
+// Exponer guardar al botón HTML
+window.guardar = guardar;
+
+// ── Init ───────────────────────────────────────────────────────────────
+document.addEventListener("DOMContentLoaded", () => {
+  // Poblar select categorías
+  const sel=document.getElementById("f-cat");
+  CATEGORIAS.forEach(c=>{ const o=document.createElement("option"); o.value=c; o.textContent=c; sel.appendChild(o); });
+  document.getElementById("f-fecha").value=today();
+  document.getElementById("u-fecha").value=today();
+
+  // ⚡ Renderizar INMEDIATAMENTE con datos del caché local
+  renderAll();
+  document.getElementById("loading-overlay").style.display = "none";
+
+  // Firebase y cotización se cargan en segundo plano
+  setSyncStatus("sincronizando", "Conectando...");
+  iniciarEscucha();
+  fetchCotiz();
+  setInterval(fetchCotiz, 5*60*1000);
+});
+</script>
+</body>
+</html>
